@@ -84,26 +84,14 @@ OMP RPC 的 extension UI request 会被映射为飞书卡片，并把用户响�
 
 这使 OMP 可以通过结构化 host callback 使用飞书资源，而不是让模型在 shell 里拼 `lark-cli` 命令。桥接层负责权限、当前上下文、消息解析和结果格式化。
 
-### Mid-run follow-up / steer
+### Mid-run steer / follow-up
 
-当某个 chat/topic 已经有 OMP run 正在执行时，同一 scope 的新普通消息不会排队等下一轮，而是直接写入当前 RPC run：
+当某个 chat/topic 已经有 OMP run 正在执行时，同一 scope 的新消息直接写入当前 RPC run：
 
-- 普通消息 → OMP `follow_up`
-- 以 `!` 开头的消息 → OMP `steer`
+- 普通消息 → OMP `steer`（中断路径：tool 调用间隙检查，可中止剩余 tool 调用）
+- `/queue <消息>` → OMP `follow_up`（当前请求完整跑完后，由新卡片回答）
 
-例如：
-
-```text
-再看一下 tests 目录
-```
-
-会进入当前 run 的 follow-up；
-
-```text
-!先不要改代码，只分析原因
-```
-
-会进入当前 run 的 steer。
+**卡片切分以 OMP 回合边界为准**：每条新消息对应的回答都开一张独立卡片，thread 到触发它的消息。`/queue`（follow-up）期间，旧卡片会一直展示旧请求直到该回合 `turn_end`，随后新卡片才出现新请求的回答——不会出现「新卡片混着旧请求尾巴」的现象。长任务的流式卡片超过时间上限时会自动轮换到新卡片继续（见 `STREAMING_WINDOW_MAX_AGE_MS`）。
 
 ## 前置条件
 
@@ -305,6 +293,7 @@ node bin/feishu-omp-bridge.mjs kill <id|#>
 | `/account` | 更换 bot app 凭据并重连。 |
 | `/status` | 查看当前 scope、cwd、session、agent。 |
 | `/stop` | 终止当前正在执行的 OMP run。 |
+| `/queue <消息>` | 把消息作为 follow-up 排入当前 run：当前请求跑完后由新卡片回答。 |
 | `/timeout [N|off|default]` | 设置当前 session 的 idle timeout，或关闭 / 恢复全局默认。 |
 | `/ps` | 列出本机所有 bridge 进程，并标识当前回复进程。 |
 | `/exit <id|#>` | 关闭指定 bridge 进程。 |
