@@ -559,13 +559,10 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
   if (resumeFrom) {
     log.info('session', 'resume', { sessionId: resumeFrom, cwd });
   } else {
-    const stale = sessions.getRaw(scope);
-    if (stale && stale.cwd !== cwd) {
-      log.info('session', 'stale-cleared', { staleCwd: stale.cwd, newCwd: cwd });
-      sessions.clear(scope);
-    } else {
-      log.info('session', 'fresh', { cwd });
-    }
+    // No slot for this cwd yet — either this workspace has never run here
+    // or the slot was cleared via /new. Other workspaces' slots are kept
+    // untouched so switching back resumes their sessions.
+    log.info('session', 'fresh', { cwd });
   }
 
   const feishuHost = createFeishuHostIntegration(channel, {

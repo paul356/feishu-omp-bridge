@@ -273,10 +273,10 @@ omp --version
 | --- | --- |
 | `/new`、`/reset` | 清空当前 chat / topic 的 OMP session。 |
 | `/new chat [name]` | 创建新群并邀请发送者；需要 `im:chat` 权限。 |
-| `/cd <绝对路径\|~/路径>` | 切换当前工作目录并重置 session。 |
+| `/cd <绝对路径\|~/路径>` | 切换当前工作目录。每个目录独立保存会话，切回时自动恢复。 |
 | `/ws list` | 列出命名工作空间。 |
 | `/ws save <name>` | 将当前工作目录保存为命名工作空间。 |
-| `/ws use <name>` | 切换命名工作空间并重置 session。 |
+| `/ws use <name>` | 切换命名工作空间（会话行为同 `/cd`，按目录独立保存）。 |
 | `/ws remove <name>` | 删除命名工作空间。 |
 | `/config` | 打开偏好设置卡片。 |
 | `/account` | 更换 bot app 凭据并重连。 |

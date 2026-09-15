@@ -64,7 +64,6 @@ export function workspacesCard(current: string | undefined, named: Record<string
 export interface StatusInfo {
   cwd: string;
   sessionId?: string;
-  sessionStale: boolean;
   agentName: string;
   /** Session scope (= chatId or chatId:threadId in topic groups). */
   scope: string;
@@ -73,9 +72,7 @@ export interface StatusInfo {
 }
 
 export function statusCard(info: StatusInfo): object {
-  const sessionLine = info.sessionId
-    ? `\`${info.sessionId.slice(0, 8)}…\`${info.sessionStale ? ' ⚠️ 旧 cwd，下一条会新建' : ''}`
-    : '(无)';
+  const sessionLine = info.sessionId ? `\`${info.sessionId.slice(0, 8)}…\`` : '(无)';
   // For topic groups, surface that the scope is per-topic so the user
   // knows /cd / /new only affect this topic.
   const scopeLine =
@@ -107,7 +104,7 @@ export function helpCard(ompCommands?: Array<{ name: string; description?: strin
         '',
         '- `/new` `/reset` — 清空当前 chat 的会话',
         '- `/new chat [name]` — 新建群+新会话，自动拉你进群',
-        '- `/cd <path>` — 切换工作目录（会重置 session）',
+        '- `/cd <path>` — 切换工作目录（各目录的会话独立保存，切回自动恢复）',
         '- `/ws list|save <name>|use <name>|remove <name>` — 工作空间',
         '- `/account` — 查看当前应用；`/account change` 换 appId/secret 并重连',
         '- `/config` — 调整偏好（消息回复方式、工具调用显示）',

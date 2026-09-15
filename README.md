@@ -273,10 +273,10 @@ The QR wizard writes the app credentials and normally moves the App Secret into 
 | --- | --- |
 | `/new` or `/reset` | Clear the current chat/topic session. |
 | `/new chat [name]` | Create a new group and invite the sender; requires `im:chat`. |
-| `/cd <absolute-path\|~/path>` | Change the current working directory and reset the session. |
+| `/cd <absolute-path\|~/path>` | Change the current working directory. Each directory keeps its own session; switch back to resume it. |
 | `/ws list` | List named workspaces. |
 | `/ws save <name>` | Save the current working directory under a name. |
-| `/ws use <name>` | Switch to a named workspace and reset the session. |
+| `/ws use <name>` | Switch to a named workspace (same per-directory session behavior as `/cd`). |
 | `/ws remove <name>` | Delete a named workspace. |
 | `/config` | Open the preferences card. |
 | `/account` | Replace bot app credentials and reconnect. |
