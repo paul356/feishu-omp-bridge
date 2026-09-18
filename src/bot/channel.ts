@@ -735,7 +735,7 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
       try {
         await finishSeg(seg);
       } catch (err) {
-        log.fail('window', err, { step: 'rotate-finalize' });
+        log.fail('window', err, { step: 'rotate-finalize', replyTo: seg.replyTo });
       }
       log.info('window', 'rotated', { ageMs: Date.now() - seg.openedAt });
       window = openWindow(seg.replyTo, renderCard(initialState));
@@ -752,31 +752,56 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
         replyTo,
         renderCard({ ...rendered, blocks: [], reasoning: { content: '', active: false } }),
       );
+      log.info('window', 'open', { replyTo, mode: replyMode });
+    }
+    let ctrl: StreamCtrl;
+    try {
+      ctrl = await window.ctrl;
+    } catch (err) {
+      // The window's stream never started — e.g. the reply target was
+      // withdrawn on Feishu (code 230011). Drop it so the next flush
+      // opens a fresh window re-anchored to the run's triggering message.
+      // Log the failed target so the withdrawn message can be identified.
+      windowFailures += 1;
+      log.fail('window', err, {
+        step: 'open',
+        replyTo: window.replyTo,
+        failures: windowFailures,
+        limit: WINDOW_FAILURE_LIMIT,
+      });
+      window = undefined;
+      return;
     }
     try {
-      const ctrl = await window.ctrl;
       if (replyMode === 'card') {
         await ctrl.update(renderCard(filterForPrefs(rendered)));
       } else {
         await ctrl.setContent(renderText(filterForPrefs(rendered)));
       }
+      const recovered = windowFailures > 0;
       window.painted = true;
       windowFailures = 0;
+      if (recovered) {
+        log.info('window', 'recovered', { replyTo: window.replyTo });
+      }
     } catch (err) {
+      // The window was created but can't be updated — finalize it
+      // (recalling any unpainted placeholder) and let the next flush
+      // open a fresh window.
       windowFailures += 1;
-      log.fail('window', err, { failures: windowFailures, limit: WINDOW_FAILURE_LIMIT });
-      // The window is unusable — abandon it so the next flush opens a
-      // fresh one. The failed reply target (e.g. a message the user
-      // withdrew) is dropped; the next window re-anchors to the message
-      // that started the run, which still exists.
+      log.fail('window', err, {
+        step: 'update',
+        replyTo: window.replyTo,
+        failures: windowFailures,
+        limit: WINDOW_FAILURE_LIMIT,
+      });
       const seg = window;
       window = undefined;
-      if (seg) {
-        try {
-          await finishSeg(seg);
-        } catch {
-          // The window's stream already failed — nothing left to finalize.
-        }
+      try {
+        await finishSeg(seg);
+      } catch (segErr) {
+        // The window's stream already failed — nothing left to finalize.
+        log.fail('window', segErr, { step: 'drop-finalize', replyTo: seg.replyTo });
       }
     }
   };
@@ -789,7 +814,7 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
       await finishSeg(seg);
     } catch (err) {
       windowFailures += 1;
-      log.fail('window', err, { step: 'finalize' });
+      log.fail('window', err, { step: 'finalize', replyTo: seg.replyTo });
     }
   };
 
@@ -853,7 +878,7 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
         } catch (err) {
           // The reply target may have been withdrawn/deleted since. The
           // answer must still reach the user — resend without a target.
-          log.fail('window', err, { step: 'final-send-retry' });
+          log.fail('window', err, { step: 'final-send-retry', replyTo: lastMsg.messageId });
           await channel.send(chatId, { markdown: body }, threadOpts);
         }
       }
