@@ -274,7 +274,14 @@ async function handleCd(args: string, ctx: CommandContext): Promise<void> {
   }
   ctx.activeRuns.interrupt(ctx.scope);
   ctx.workspaces.setCwd(ctx.scope, absolute);
-  await reply(ctx, `✓ 已切换 cwd 到 \`${absolute}\`\n（原工作目录的会话保留，切回时自动恢复）`);
+  const slot = ctx.sessions.getSlot(ctx.scope, absolute);
+  const resumed = slot?.sessionId;
+  await reply(
+    ctx,
+    resumed
+      ? `✓ 已切换 cwd 到 \`${absolute}\`\n（恢复该目录上次会话 \`${resumed.slice(0, 8)}…\`；其他目录的会话保留，切回时自动恢复）`
+      : `✓ 已切换 cwd 到 \`${absolute}\`\n（该目录暂无保存的会话，下一条消息会开新会话；其他目录的会话保留，切回时自动恢复）`,
+  );
 }
 
 async function handleWs(args: string, ctx: CommandContext): Promise<void> {
@@ -330,7 +337,14 @@ async function handleWsUse(name: string, ctx: CommandContext): Promise<void> {
   }
   ctx.activeRuns.interrupt(ctx.scope);
   ctx.workspaces.setCwd(ctx.scope, cwd);
-  await reply(ctx, `✓ 已切换到 \`${name}\` (${cwd})\n（其他工作目录的会话保留）`);
+  const slot = ctx.sessions.getSlot(ctx.scope, cwd);
+  const resumed = slot?.sessionId;
+  await reply(
+    ctx,
+    resumed
+      ? `✓ 已切换到 \`${name}\` (${cwd})\n（恢复该目录上次会话 \`${resumed.slice(0, 8)}…\`；其他工作目录的会话保留）`
+      : `✓ 已切换到 \`${name}\` (${cwd})\n（该目录暂无保存的会话，下一条消息会开新会话；其他工作目录的会话保留）`,
+  );
 }
 
 async function handleWsRemove(name: string, ctx: CommandContext): Promise<void> {
