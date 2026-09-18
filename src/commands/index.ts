@@ -73,6 +73,10 @@ export interface CommandContext {
   /** Resolved chat mode for `msg.chatId`. Used by /status to surface the
    * scope semantic to the user (`topic` shows "话题独立 session"). */
   chatMode: 'p2p' | 'group' | 'topic';
+  /** Enqueue content as a plain user message (debounce + fresh run). Only
+   * provided by the message intake; card actions don't thread to the queue.
+   * `/queue` uses it to deliver its payload when no run is active. */
+  enqueueAsMessage?: (content: string) => void;
   sessions: SessionStore;
   workspaces: WorkspaceStore;
   agent: AgentAdapter;
@@ -411,7 +415,16 @@ async function handleQueue(args: string, ctx: CommandContext): Promise<void> {
   );
   if (!ok) {
     log.info('command', 'queue', { scope: ctx.scope, skipped: 'no-active-run' });
-    await reply(ctx, '当前没有进行中的请求，直接发送消息即可。');
+    if (ctx.enqueueAsMessage) {
+      // Nothing in flight — but the user still asked us to deliver the
+      // payload, not just to acknowledge the command. Enqueue it as a
+      // plain message so it starts a fresh run; the reply threads to this
+      // `/queue` message itself.
+      ctx.enqueueAsMessage(text);
+      await reply(ctx, '当前没有进行中的请求，已把这条消息作为新请求发出。');
+    } else {
+      await reply(ctx, '当前没有进行中的请求，直接发送消息即可。');
+    }
     return;
   }
   log.info('command', 'queue', { scope: ctx.scope });

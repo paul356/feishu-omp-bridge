@@ -422,6 +422,10 @@ async function intakeMessage(deps: IntakeDeps): Promise<void> {
     return;
   }
 
+  // `/queue` with no active run enqueues its payload as a plain message
+  // via this callback. Track it so pending.cancel below does not drop the
+  // just-enqueued message (command semantics: cancel only stale backlog).
+  let commandEnqueued = false;
   const handled = await tryHandleCommand({
     channel,
     msg,
@@ -433,10 +437,19 @@ async function intakeMessage(deps: IntakeDeps): Promise<void> {
     activeRuns,
     media,
     controls,
+    enqueueAsMessage: (content) => {
+      commandEnqueued = true;
+      const size = pending.push(scope, { ...msg, content });
+      log.info('intake', 'command-enqueued', { scope, queueSize: size });
+    },
   });
   if (handled) {
-    const dropped = pending.cancel(scope);
-    log.info('intake', 'command', { scope, droppedPending: dropped.length });
+    if (commandEnqueued) {
+      log.info('intake', 'command-enqueued', { scope });
+    } else {
+      const dropped = pending.cancel(scope);
+      log.info('intake', 'command', { scope, droppedPending: dropped.length });
+    }
     return;
   }
 
