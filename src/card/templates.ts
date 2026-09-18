@@ -102,7 +102,7 @@ export function helpCard(ompCommands?: Array<{ name: string; description?: strin
       [
         '**bridge 命令**',
         '',
-        '- `/new` `/reset` — 清空当前 chat 的会话',
+        '- `/new` `/reset` — 清空当前目录的会话（其他目录保留）',
         '- `/new chat [name]` — 新建群+新会话，自动拉你进群',
         '- `/cd <path>` — 切换工作目录（各目录的会话独立保存，切回自动恢复）',
         '- `/ws list|save <name>|use <name>|remove <name>` — 工作空间',

@@ -45,18 +45,36 @@ describe('SessionStore multi-slot', () => {
     expect(store.resumeFor('chat-1', '/ws/a/')).toBe('sess-a2'); // trailing slash normalizes
   });
 
-  it('clear drops every slot and the timeout override', async () => {
+  it('clearSlot drops only the given cwd slot, keeping others and the timeout override', async () => {
     const { store } = makeStore();
     await store.load();
     store.set('chat-1', 'sess-a', '/ws/a');
     store.set('chat-1', 'sess-b', '/ws/b');
     store.setIdleTimeoutMinutes('chat-1', 15);
 
-    store.clear('chat-1');
-
+    expect(store.clearSlot('chat-1', '/ws/a')).toBe(true);
     expect(store.resumeFor('chat-1', '/ws/a')).toBeUndefined();
+    expect(store.resumeFor('chat-1', '/ws/b')).toBe('sess-b');
+    expect(store.getIdleTimeoutMinutes('chat-1')).toBe(15);
+
+    // Clearing an already-gone slot is a no-op.
+    expect(store.clearSlot('chat-1', '/ws/a')).toBe(false);
+
+    // The chat-wide override survives even after the last slot is cleared.
+    expect(store.clearSlot('chat-1', '/ws/b')).toBe(true);
     expect(store.resumeFor('chat-1', '/ws/b')).toBeUndefined();
-    expect(store.getIdleTimeoutMinutes('chat-1')).toBeUndefined();
+    expect(store.getIdleTimeoutMinutes('chat-1')).toBe(15);
+  });
+
+  it('clearSlot prunes chats that end up with no slots and no override', async () => {
+    const { store } = makeStore();
+    await store.load();
+    store.set('chat-1', 'sess-a', '/ws/a');
+
+    expect(store.clearSlot('chat-1', '/ws/a')).toBe(true);
+    expect(store.resumeFor('chat-1', '/ws/a')).toBeUndefined();
+    expect(store.clearSlot('chat-2', '/ws/a')).toBe(false);
+    expect(store.clearSlot('chat-1', '/ws/a')).toBe(false);
   });
 
   it('idle timeout is chat-wide and survives slot writes', async () => {

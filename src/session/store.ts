@@ -103,11 +103,27 @@ export class SessionStore {
     this.schedulePersist();
   }
 
-  /** Drop every slot and the timeout override for this chat (/new, /reset). */
-  clear(chatId: string): void {
-    if (!(chatId in this.data)) return;
-    delete this.data[chatId];
+  /**
+   * Drop only the given working directory's session slot for this chat
+   * (/new, /reset). Other directories' slots and the chat-wide idle-timeout
+   * override are kept — sessions are per-directory, so resetting one
+   * workspace must not disturb the others. Returns true if a slot was
+   * actually removed.
+   */
+  clearSlot(chatId: string, cwd: string): boolean {
+    const chat = this.data[chatId];
+    if (!chat) return false;
+    const key = resolve(cwd);
+    if (!(key in chat.slots)) return false;
+    delete chat.slots[key];
+    // Prune the chat entry once it holds nothing but an idle-timeout
+    // override — `load` treats such entries as absent anyway, so keep the
+    // file in that shape.
+    if (Object.keys(chat.slots).length === 0 && chat.idleTimeoutMinutes === undefined) {
+      delete this.data[chatId];
+    }
     this.schedulePersist();
+    return true;
   }
 
   /** Per-chat idle-timeout override. `undefined` means no override set. */

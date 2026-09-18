@@ -271,7 +271,7 @@ omp --version
 
 | 命令 | 作用 |
 | --- | --- |
-| `/new`、`/reset` | 清空当前 chat / topic 的 OMP session。 |
+| `/new`、`/reset` | 清空当前目录的 OMP session（其他目录保留）。 |
 | `/new chat [name]` | 创建新群并邀请发送者；需要 `im:chat` 权限。 |
 | `/cd <绝对路径\|~/路径>` | 切换当前工作目录。每个目录独立保存会话，切回时自动恢复。 |
 | `/ws list` | 列出命名工作空间。 |
@@ -283,7 +283,7 @@ omp --version
 | `/status` | 查看 scope、工作目录、session 和 agent 信息。 |
 | `/stop` | 停止当前 chat / topic 的 OMP run。 |
 | `/queue <消息>` | 把消息作为 follow-up 排入当前 run：当前请求跑完后由新卡片回答。 |
-| `/timeout [N\|off\|default]` | 设置、关闭或恢复当前 session 的 idle timeout；`N` 为 `1..120` 分钟。 |
+| `/timeout [N\|off\|default]` | 设置、关闭或恢复该 chat 的 idle timeout（chat 级偏好）；`N` 为 `1..120` 分钟。 |
 | `/ps` | 列出本机 bridge 进程。 |
 | `/exit <id\|序号>` | 关闭指定 bridge 进程；序号对应 `/ps` 中从 1 开始的行号。 |
 | `/reconnect` | 重连飞书 WebSocket。 |
@@ -320,7 +320,7 @@ node bin/feishu-omp-bridge.mjs start
 | `secrets.enc` | 本地加密 App Secret keystore。 |
 | `.keystore.salt` | keystore salt。 |
 | `secrets-getter` | 读取 keystore 的私有 exec-provider wrapper。 |
-| `sessions.json` | OMP session ID、工作目录和每个 session 的 timeout 覆盖。 |
+| `sessions.json` | 按目录保存的 OMP session slot 与 chat 级 idle-timeout 覆盖。 |
 | `omp-sessions/` | bridge 专用 OMP JSONL session 文件。 |
 | `workspaces.json` | 命名工作空间映射。 |
 | `processes.json` | 本机 bridge 进程注册表。 |
@@ -365,7 +365,7 @@ node bin/feishu-omp-bridge.mjs restart
 
 ### run 卡住
 
-发送 `/stop` 终止当前任务。也可以对当前 session 发送 `/timeout 10`，或在全局配置 `runIdleTimeoutMinutes`。当 OMP 正在等待工具或原生 UI 响应时，idle watchdog 会暂停。
+发送 `/stop` 终止当前任务。也可以对该 chat 发送 `/timeout 10`，或在全局配置 `runIdleTimeoutMinutes`。当 OMP 正在等待工具或原生 UI 响应时，idle watchdog 会暂停。
 
 ### OMP 请求确认或输入
 

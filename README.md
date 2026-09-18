@@ -271,7 +271,7 @@ The QR wizard writes the app credentials and normally moves the App Secret into 
 
 | Command | Action |
 | --- | --- |
-| `/new` or `/reset` | Clear the current chat/topic session. |
+| `/new` or `/reset` | Clear the current directory's session (other directories keep theirs). |
 | `/new chat [name]` | Create a new group and invite the sender; requires `im:chat`. |
 | `/cd <absolute-path\|~/path>` | Change the current working directory. Each directory keeps its own session; switch back to resume it. |
 | `/ws list` | List named workspaces. |
@@ -283,7 +283,7 @@ The QR wizard writes the app credentials and normally moves the App Secret into 
 | `/status` | Show scope, working directory, session, and agent information. |
 | `/stop` | Stop the active OMP run for this chat/topic. |
 | `/queue <message>` | Schedule the message as a follow-up, answered on a fresh card after the current turn completes. |
-| `/timeout [N\|off\|default]` | Set, disable, or reset the idle timeout for this session. `N` is `1..120` minutes. |
+| `/timeout [N\|off\|default]` | Set, disable, or reset the chat-wide idle timeout. `N` is `1..120` minutes. |
 | `/ps` | List bridge processes on the machine. |
 | `/exit <id\|index>` | Stop a selected bridge process; `index` is the 1-based `/ps` row number. |
 | `/reconnect` | Reconnect the Feishu WebSocket. |
@@ -320,7 +320,7 @@ All bridge state is kept under `~/.feishu-omp-bridge/` by default:
 | `secrets.enc` | Encrypted local App Secret keystore. |
 | `.keystore.salt` | Keystore salt. |
 | `secrets-getter` | Private exec-provider wrapper for the keystore. |
-| `sessions.json` | OMP session ID, working directory, and per-session timeout overrides. |
+| `sessions.json` | Per-directory OMP session slots and the chat-wide idle-timeout override. |
 | `omp-sessions/` | Bridge-owned OMP JSONL session files. |
 | `workspaces.json` | Named workspace mappings. |
 | `processes.json` | Local bridge process registry. |
@@ -365,7 +365,7 @@ Mention the bot, or set `preferences.requireMentionInGroup` to `false`. Also che
 
 ### A run is stuck
 
-Use `/stop` to terminate it. You can set `/timeout 10` for the current session or configure `runIdleTimeoutMinutes` globally. The idle watchdog pauses while OMP is waiting for a tool or native UI response.
+Use `/stop` to terminate it. You can set `/timeout 10` for the chat or configure `runIdleTimeoutMinutes` globally. The idle watchdog pauses while OMP is waiting for a tool or native UI response.
 
 ### OMP asks for confirmation or input
 

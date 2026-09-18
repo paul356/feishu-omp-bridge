@@ -208,8 +208,14 @@ async function handleNew(args: string, ctx: CommandContext): Promise<void> {
   }
 
   const wasRunning = ctx.activeRuns.interrupt(ctx.scope);
-  ctx.sessions.clear(ctx.scope);
-  await reply(ctx, wasRunning ? '已中断当前任务并开始新会话。' : '已开始新会话。');
+  const cwd = ctx.workspaces.cwdFor(ctx.scope) ?? homedir();
+  ctx.sessions.clearSlot(ctx.scope, cwd);
+  await reply(
+    ctx,
+    wasRunning
+      ? `已中断当前任务并开始新会话（当前目录 \`${cwd}\`）。`
+      : `已开始新会话（当前目录 \`${cwd}\`）。其他目录的会话保留，切回时自动恢复。`,
+  );
 }
 
 async function handleNewChat(rawName: string, ctx: CommandContext): Promise<void> {
@@ -422,7 +428,7 @@ async function handleTimeout(args: string, ctx: CommandContext): Promise<void> {
   if (!trimmed) {
     const scopeMinutes = ctx.sessions.getIdleTimeoutMinutes(ctx.scope);
     const usage =
-      '\n\n用法:\n- `/timeout 15` 当前 session 设 15 分钟\n- `/timeout off` 当前 session 关闭探活\n- `/timeout default` 清除 session 覆盖,回退全局\n\n_注:`/new` 会清掉当前 session 的覆盖,回到全局_';
+      '\n\n用法:\n- `/timeout 15` 当前 session 设 15 分钟\n- `/timeout off` 当前 session 关闭探活\n- `/timeout default` 清除 session 覆盖,回退全局\n\n_注:探活覆盖是 chat 级偏好,不受 `/new` 影响(只重置当前目录的会话)_';
     if (scopeMinutes !== undefined) {
       const effective =
         scopeMinutes > 0 ? `${scopeMinutes} 分钟` : '已关闭（当前 session）';
